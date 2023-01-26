@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 django = "==3.2.13"
 django-scheduler = "*"
+jupyter = "*"
 
 [dev-packages]
 
