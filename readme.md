@@ -158,6 +158,83 @@ Let's see it in action. Before that we need to create an recurring `Event`.  So 
 how `Recurrence` works. 
 
 ```python
-from schedule.models import Calendar,Event,Occurrence
+from schedule.models import Calendar,Event,Occurrence,Rule
+import datetime
 
+calendar = Calendar.objects.get(name="Test Calendar")
+weekly_rule = Rule.objects.get(name="Weekly")
+data = {'title': 'Daily Exercise',
+        'start': datetime.datetime(2023, 2, 1, 12, 0),
+        'end': datetime.datetime(2023, 2, 1, 12, 30),
+        'end_recurring_period': datetime.datetime(2024, 2, 1, 0, 0),
+        }
+
+event2 = Event(**data)
+event2.calendar = calendar
+event2.rule = weekly_rule
+event2.save()
+
+# List all events
+all_events = Event.objects.all()
+[event.title for event in all_events]
 ```
+
+**Output**
+```
+['Recent Event', 'Daily Exercise']
+```
+
+We've created a recurrence event named `Daily Exercise`. In the `start` and `end` time defines the first instance of the
+event. The `end_recurring_period` determines for how long it will be repeated. Now between the first instance of the 
+event and the `end_recurring_period` the event will be repeated as par the `rule`. Here, we've set the weekly rule that
+was created earlier. Since the rule is to repeat the event weekly so let's check the weekday of the first instance of
+the event.
+
+```python
+import datetime
+start_date = datetime.datetime(2023, 2, 1, 12, 0)
+start_date.strftime('%A')
+```
+**Output**
+```
+Wednesday
+```
+Since the first day is **Wednesday**, so this event will be repeated for every **Wednesday** from 12:00 to 12:30.
+This event will be continued until the `end_recurring_period` date.
+
+-----
+
+Now think of one instance among these where we want to change 'Daily Exercise' time or cancel it. How do we do it?
+This event instance is called **occurrence**.
+
+For example: <br>
+Let's say for date `2023/03/01` is Wednesday and we want to change the time for **Daily Exercise** for this day.
+This instance is called occurrence of a recurring event.
+
+```python
+from schedule.models import Calendar,Event,Occurrence,Rule
+import datetime
+event = Event.objects.get(title="Daily Exercise")
+data = {'title': 'Exercise Time Change',
+        'start': datetime.datetime(2023, 3, 1, 14, 0),
+        'end': datetime.datetime(2023, 3, 1, 14, 30),
+        'cancelled': False,
+        'original_start': datetime.datetime(2023, 3, 1, 12, 0),
+        'original_end': datetime.datetime(2023, 3, 1, 12, 30),
+        
+        }
+occurrence1 = Occurrence(**data)
+occurrence1.event = event
+occurrence1.save()
+# List all the Occurrence
+all_occurrences = Occurrence.objects.all()
+[(occurrence.title,occurrence.start,occurrence.end) for occurrence in all_occurrences]
+```
+**Output**
+```
+[('Exercise Time Change',
+  datetime.datetime(2023, 3, 1, 8, 0, tzinfo=<UTC>),
+  datetime.datetime(2023, 3, 1, 8, 30, tzinfo=<UTC>))]
+```
+
+
