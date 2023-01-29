@@ -15,6 +15,10 @@ Here are the major models of Django-Scheduler
 ```python
 
 from schedule.models import Calendar
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+
 # Create a Calendar
 calendar = Calendar(name = 'Test Calendar')
 calendar.save()
@@ -53,12 +57,15 @@ other models.
 ```python
 from schedule.models import Calendar,Event
 import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
 
 calendar = Calendar.objects.get(name="Test Calendar")
 
 data = {'title': 'Recent Event',
-        'start': datetime.datetime(2008, 1, 5, 0, 0),
-        'end': datetime.datetime(2008, 1, 10, 0, 0)
+        'start': datetime.datetime(2008, 1, 5, 0, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2008, 1, 10, 0, 0,tzinfo=time_zone)
         }
 event1 = Event(**data)
 event1.calendar = calendar
@@ -160,13 +167,16 @@ how `Recurrence` works.
 ```python
 from schedule.models import Calendar,Event,Occurrence,Rule
 import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
 
 calendar = Calendar.objects.get(name="Test Calendar")
 weekly_rule = Rule.objects.get(name="Weekly")
 data = {'title': 'Daily Exercise',
-        'start': datetime.datetime(2023, 2, 1, 12, 0),
-        'end': datetime.datetime(2023, 2, 1, 12, 30),
-        'end_recurring_period': datetime.datetime(2024, 2, 1, 0, 0),
+        'start': datetime.datetime(2023, 2, 1, 12, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2023, 2, 1, 12, 30,tzinfo=time_zone),
+        'end_recurring_period': datetime.datetime(2024, 2, 1, 0, 0,tzinfo=time_zone),
         }
 
 event2 = Event(**data)
@@ -192,7 +202,10 @@ the event.
 
 ```python
 import datetime
-start_date = datetime.datetime(2023, 2, 1, 12, 0)
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+start_date = datetime.datetime(2023, 2, 1, 12, 0, tzinfo=time_zone)
 start_date.strftime('%A')
 ```
 **Output**
@@ -214,13 +227,17 @@ This instance is called occurrence of a recurring event.
 ```python
 from schedule.models import Calendar,Event,Occurrence,Rule
 import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+
 event = Event.objects.get(title="Daily Exercise")
 data = {'title': 'Exercise Time Change',
-        'start': datetime.datetime(2023, 3, 1, 14, 0),
-        'end': datetime.datetime(2023, 3, 1, 14, 30),
+        'start': datetime.datetime(2023, 3, 1, 14, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2023, 3, 1, 14, 30,tzinfo=time_zone),
         'cancelled': False,
-        'original_start': datetime.datetime(2023, 3, 1, 12, 0),
-        'original_end': datetime.datetime(2023, 3, 1, 12, 30),
+        'original_start': datetime.datetime(2023, 3, 1, 12, 0,tzinfo=time_zone),
+        'original_end': datetime.datetime(2023, 3, 1, 12, 30,tzinfo=time_zone),
         
         }
 occurrence1 = Occurrence(**data)
@@ -236,5 +253,42 @@ all_occurrences = Occurrence.objects.all()
   datetime.datetime(2023, 3, 1, 8, 0, tzinfo=<UTC>),
   datetime.datetime(2023, 3, 1, 8, 30, tzinfo=<UTC>))]
 ```
+In the `datetime` field, we passed an additional parameter `tzinfo`. It is used to tell system about  the timezone.
+We will not describe it here in detail.
+
+------
+## How to get list of occurrences
+Because some Event can recur indefinitely, you cannot have a function like, `event.get_all_occurrences()`, because that
+would be an infinite list.
+So instead we have to define the interval to view occurrences between that interval.
+
+```python
+from schedule.models import Calendar,Event,Occurrence,Rule
+import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+
+event = Event.objects.get(title='Daily Exercise')
+
+start_time = datetime.datetime(2023, 2, 8, 0, 0,tzinfo=time_zone)
+end_time = datetime.datetime(2023, 3, 1, 23, 00,tzinfo=time_zone)
+
+all_occurrences = event.get_occurrences(start=start_time,end=end_time)
+
+for occurrence in all_occurrences:
+  print("Title: {} \t\nStart: {} \t\nEnd: {} \t\n".format(occurrence.title,occurrence.start,occurrence.end))
+
+```
+
+
+## Periods
+
+One of the goals of DjangoSchedule is to make occurrence generation and persistence easy. To do this it creates simple
+classes for accessing these occurrences. These are Periods. Period is an object that is initiated with an iterable 
+object of events, a start datetime, and an end datetime.
+
+It is common to subclass Period for common periods of time. Some of these already exist in the project. Year, Month,
+Week, Day.
 
 
