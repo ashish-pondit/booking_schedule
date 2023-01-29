@@ -3,12 +3,12 @@
 ## Models
 
 Here are the major models of Django-Scheduler
-1. [Calendar](#Calendar)
-2. CalendarRelation
-3. Event
-4. EventRelation
-5.  Rule
-6. Occurrence 
+1. [Calendar](#1-calendar)
+2. [CalendarRelation](#2-calendarrelation)
+3. [Event](#3-event)
+4. [EventRelation](#4-eventrelation)
+5.  [Rule](#5-rule)
+6. [Occurrence](#6-occurrence)
 
 ### 1. Calendar
 
