@@ -15,9 +15,6 @@ Here are the major models of Django-Scheduler
 ```python
 
 from schedule.models import Calendar
-import pytz
-
-time_zone = pytz.timezone('Asia/Dhaka')
 
 # Create a Calendar
 calendar = Calendar(name = 'Test Calendar')
@@ -27,6 +24,7 @@ all_calendars = Calendar.objects.all()
 
 ```
 -----
+
 ### 2. CalendarRelation
 
 This is for relating data to a Calendar, and possible all of the events for
@@ -48,10 +46,11 @@ inherit this relation
 
 **DISCLAIMER:** while this model is a nice out of the box feature to have, it
 may not scale well.  If you use this, keep that in mind.
+
 ------
 ### 3. Event
 
-This model stores meta data for a date.  You can relate this data to many
+This model stores metadata for a date.  You can relate this data to many
 other models.
 
 ```python
@@ -100,6 +99,8 @@ have a 'viewer' relation and an 'owner' relation for example.
 
 **DISCLAIMER:** while this model is a nice out of the box feature to have, it
 may not scale well.  If you use this keep that in mind.
+
+
 ---
 ### 5. Rule
 
@@ -372,15 +373,100 @@ for occurrence in all_occurrences:
 ```
 
 
-[//]: # (**Time Zone Note**)
+**Time Zone Note**
 
-[//]: # (```python)
 
-[//]: # (from django.utils.timezone import localtime)
+```python
 
-[//]: # ()
-[//]: # (localtime&#40;tt.start&#41;)
 
-[//]: # (#datetime.datetime&#40;2023, 3, 1, 13, 58, tzinfo=<DstTzInfo 'Asia/Dhaka' +06+6:00:00 STD>&#41;)
+from django.utils.timezone import localtime
 
-[//]: # (```)
+
+
+localtime(tt.start)
+
+
+#datetime.datetime(2023, 3, 1, 13, 58, tzinfo=<DstTzInfo 'Asia/Dhaka' +06+6:00:00 STD>)
+
+
+```
+
+--------
+
+## Time Zone in Django
+
+Naive and aware datetime objects¶
+Python’s datetime.datetime objects have a tzinfo attribute that can be used to store time zone information, represented
+as an instance of a subclass of datetime.tzinfo. When this attribute is set and describes an offset, a datetime object 
+is aware. Otherwise, it’s naive.
+
+```python
+from datetime import datetime
+from django.utils import timezone as dtz
+
+# Naive Datetime
+print(datetime.now())
+
+# Timezone aware datetime
+print(dtz.now())
+
+```
+
+**Output**
+```
+2023-01-30 17:19:33.638018
+2023-01-30 11:19:33.638134+00:00
+```
+
+In the second output you can see additional +00:00 which means the second datetime is aware and in `UTC` format.
+
+You can use is_aware() and is_naive() to determine whether datetime are aware or naive.
+
+```python
+from django.utils.timezone import is_aware, is_naive
+from django.utils import timezone as dtz
+from datetime import datetime
+
+def check_awareness(dt):
+  print(f"Datetime: {dt} \t\nAware: {is_aware(dt)}\t\nNaive: {is_naive(dt)}\t\n")
+
+current_time = datetime.now()
+check_awareness(current_time)
+
+current_time = dtz.now()
+check_awareness(current_time)
+
+```
+
+**Output**
+```
+
+Datetime: 2023-01-30 17:39:39.098868    
+Aware: False    
+Naive: True     
+
+Datetime: 2023-01-30 11:39:39.099098+00:00      
+Aware: True     
+Naive: False  
+
+```
+
+We can also convert a **naive** datetime to **aware** datetime and vice versa using `make_aware` and `make_naive`
+respectively.
+
+```python
+
+from django.utils.timezone import is_aware, is_naive, make_aware, make_naive
+from django.utils import timezone as dtz
+from datetime import datetime
+
+def check_awareness(dt):
+  print(f"Datetime: {dt} \t\nAware: {is_aware(dt)}\t\nNaive: {is_naive(dt)}\t\n")
+
+current_time = datetime.now()
+check_awareness(current_time)
+
+aware_current_time = make_aware(datetime.now())
+check_awareness(aware_current_time)
+```
+
