@@ -26,7 +26,7 @@ calendar.save()
 all_calendars = Calendar.objects.all()
 
 ```
-
+-----
 ### 2. CalendarRelation
 
 This is for relating data to a Calendar, and possible all of the events for
@@ -48,7 +48,7 @@ inherit this relation
 
 **DISCLAIMER:** while this model is a nice out of the box feature to have, it
 may not scale well.  If you use this, keep that in mind.
-
+------
 ### 3. Event
 
 This model stores meta data for a date.  You can relate this data to many
@@ -64,8 +64,8 @@ time_zone = pytz.timezone('Asia/Dhaka')
 calendar = Calendar.objects.get(name="Test Calendar")
 
 data = {'title': 'Recent Event',
-        'start': datetime.datetime(2008, 1, 5, 0, 0,tzinfo=time_zone),
-        'end': datetime.datetime(2008, 1, 10, 0, 0,tzinfo=time_zone)
+        'start': datetime.datetime(2023, 1, 5, 0, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2023, 1, 10, 0, 0,tzinfo=time_zone)
         }
 event1 = Event(**data)
 event1.calendar = calendar
@@ -100,7 +100,7 @@ have a 'viewer' relation and an 'owner' relation for example.
 
 **DISCLAIMER:** while this model is a nice out of the box feature to have, it
 may not scale well.  If you use this keep that in mind.
-
+---
 ### 5. Rule
 
 A rule defines how an event will recur. This is applicable for recurring events.
@@ -153,7 +153,7 @@ data = {
 weekly_rule = Rule(**data)
 weekly_rule.save()
 ```
-
+----
 ### 6. Occurrence
 
 An occurrence is an instance of an event. Occurrence is for repeated  `Event` .
@@ -260,7 +260,10 @@ We will not describe it here in detail.
 ## How to get list of occurrences
 Because some Event can recur indefinitely, you cannot have a function like, `event.get_all_occurrences()`, because that
 would be an infinite list.
-So instead we have to define the interval to view occurrences between that interval.
+
+### get_occurrences()
+So instead we have to define the interval to view occurrences between that interval. In the below example we have
+defined a start date and end date. All the occurrences in this time interval will be shown.
 
 ```python
 from schedule.models import Calendar,Event,Occurrence,Rule
@@ -281,6 +284,62 @@ for occurrence in all_occurrences:
 
 ```
 
+The output is self-explanatory.
+
+### occurrences_after()
+This method produces a generator that generates events inclusively after the given datetime after. If no date is given 
+then it uses now.
+
+```python
+from schedule.models import Calendar,Event,Occurrence,Rule
+import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+
+event = Event.objects.get(title='Daily Exercise')
+start_time = datetime.datetime(2023, 1, 30, 11, 0,tzinfo=time_zone)
+all_occurrences = event.occurrences_after(start_time)
+
+for occurrence in all_occurrences:
+  print("Title: {} \t\nStart: {} \t\nEnd: {} \t\n".format(occurrence.title,occurrence.start,occurrence.end))
+
+```
+Using the above methods we can get occurrences of a single events. In real life application there can be serveral events
+. So now we will see how we can get occurrences from multiple events. Before that let's create some more events.
+
+```python
+from schedule.models import Calendar,Event,Rule
+import datetime
+import pytz
+
+time_zone = pytz.timezone('Asia/Dhaka')
+
+calendar = Calendar.objects.get(name="Test Calendar")
+
+data = {'title': 'Ekushey February',
+        'start': datetime.datetime(2023, 2, 21, 0, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2023, 2, 21, 23, 59,tzinfo=time_zone)
+        }
+event3 = Event(**data)
+event3.calendar = calendar
+event3.save()
+
+weekly_rule = Rule.objects.get(name="Weekly")
+data = {'title': 'Go to the Temple',
+        'start': datetime.datetime(2023, 2, 3, 8, 0,tzinfo=time_zone),
+        'end': datetime.datetime(2023, 2, 3, 8, 30,tzinfo=time_zone),
+        'end_recurring_period': datetime.datetime(2023, 4, 1, 0, 0,tzinfo=time_zone),
+        }
+
+event4 = Event(**data)
+event4.calendar = calendar
+event4.rule = weekly_rule
+event4.save()
+```
+----
+
+
 
 ## Periods
 
@@ -291,4 +350,37 @@ object of events, a start datetime, and an end datetime.
 It is common to subclass Period for common periods of time. Some of these already exist in the project. Year, Month,
 Week, Day.
 
+```python
+from schedule.models import Calendar,Event,Rule
+from schedule.periods import Period
+import datetime
+import pytz
 
+time_zone = pytz.timezone('Asia/Dhaka')
+all_events = Event.objects.all()
+start = datetime.datetime(2023,2,1,0,0,tzinfo=time_zone)
+end = datetime.datetime(2023,3,1,0,0,tzinfo=time_zone)
+
+period = Period(all_events,start,end)
+
+all_occurrences = period.get_occurrences()
+
+for occurrence in all_occurrences:
+  print("Title: {} \t\nStart: {} \t\nEnd: {} \t\nClass: {} \t\n".format(occurrence.title,occurrence.start,occurrence.end,))
+
+
+```
+
+
+[//]: # (**Time Zone Note**)
+
+[//]: # (```python)
+
+[//]: # (from django.utils.timezone import localtime)
+
+[//]: # ()
+[//]: # (localtime&#40;tt.start&#41;)
+
+[//]: # (#datetime.datetime&#40;2023, 3, 1, 13, 58, tzinfo=<DstTzInfo 'Asia/Dhaka' +06+6:00:00 STD>&#41;)
+
+[//]: # (```)
