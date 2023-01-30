@@ -1,5 +1,7 @@
 # Django-Scheduler
 
+If you are not familiar with timezone the please go to [this](#time-zone-in-django) section.
+
 ## Models
 
 Here are the major models of Django-Scheduler
