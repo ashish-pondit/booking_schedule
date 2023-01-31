@@ -1,6 +1,6 @@
 # Django-Scheduler
 
-If you are not familiar with timezone the please go to [this](#time-zone-in-django) section.
+If you are not familiar with timezone then please go to [this](#time-zone-in-django) section.
 
 ## Models
 
@@ -369,29 +369,34 @@ period = Period(all_events,start,end)
 all_occurrences = period.get_occurrences()
 
 for occurrence in all_occurrences:
-  print("Title: {} \t\nStart: {} \t\nEnd: {} \t\nClass: {} \t\n".format(occurrence.title,occurrence.start,occurrence.end,))
+  print("Title: {} \t\nStart: {} \t\nEnd: {} \t\n".format(occurrence.title,occurrence.start,occurrence.end,))
 
 
 ```
 
 
-**Time Zone Note**
+[//]: # (**Time Zone Note**)
 
+[//]: # ()
+[//]: # ()
+[//]: # (```python)
 
-```python
+[//]: # ()
+[//]: # ()
+[//]: # (from django.utils.timezone import localtime)
 
+[//]: # ()
+[//]: # ()
+[//]: # ()
+[//]: # (localtime&#40;tt.start&#41;)
 
-from django.utils.timezone import localtime
+[//]: # ()
+[//]: # ()
+[//]: # (#datetime.datetime&#40;2023, 3, 1, 13, 58, tzinfo=<DstTzInfo 'Asia/Dhaka' +06+6:00:00 STD>&#41;)
 
-
-
-localtime(tt.start)
-
-
-#datetime.datetime(2023, 3, 1, 13, 58, tzinfo=<DstTzInfo 'Asia/Dhaka' +06+6:00:00 STD>)
-
-
-```
+[//]: # ()
+[//]: # ()
+[//]: # (```)
 
 --------
 
@@ -470,5 +475,197 @@ check_awareness(current_time)
 
 aware_current_time = make_aware(datetime.now())
 check_awareness(aware_current_time)
+
 ```
 
+## Django-Scheduler Real Life Example
+
+Suppose there are two models.
+- Tour Guide
+- Tourist
+
+A tour guide have his weekly schedule which will be continued throughout the year. He can change / cancel a specific date or time
+from his repeated schedule. Suppose the tour guides schedule will be like below:
+
+- Sunday    :10 AM - 12 AM, 2 PM - 5 PM
+- Monday    :10 AM - 12 AM, 2 PM - 5 PM
+- Tuesday   :10 AM - 12 AM, 2 PM - 5 PM
+- Wednesday :10 AM - 12 AM, 2 PM - 5 PM
+- Thursday  :10 AM - 12 AM
+
+This schedule for tour guide will continue for whole 2023 year.
+
+On the other hand, a tourist can search by date and time. Based on the date and time tourist provide available guides
+will be shown. Then a tourist can book that guide for a specific hour. If a tour guide is booked for a time slot then
+other tourist can not book him for that time slot.
+
+```python
+from core.models import Guide,Tourist,Booking
+from schedule.models import Calendar,Event,Occurrence,Rule
+from django.utils.timezone import is_aware, make_aware
+from datetime import datetime, timedelta
+
+
+calendar1 = Calendar(name='guide1 calendar', slug='guide1-calendar')
+calendar1.save()
+
+guide1 = Guide(name='guide1')
+guide1.calendar = calendar1
+guide1.save()
+
+calendar2 = Calendar(name='guide2 calendar', slug='guide2-calendar')
+calendar2.save()
+
+guide2 = Guide(name='Guide2')
+guide2.calendar = calendar2
+guide2.save()
+
+# set schedule for guide 1 
+# - Sunday    :10 AM - 12 AM, 2 PM - 5 PM
+# - Monday    :10 AM - 12 AM, 2 PM - 5 PM
+# - Thursday  :10 AM - 12 AM
+
+def find_date(weekday):
+  weekday = weekday.lower()
+  weekday_name = {
+    'monday': 0,
+    'tuesday': 1,
+    'wednesday': 2,
+    'thursday': 3,
+    'friday': 4,
+    'saturday': 5,
+    'sunday': 6
+  }
+  
+  target_weekday = weekday_name[weekday]
+  today = datetime.now()
+  
+  if (target_weekday - today.weekday()) < 0:
+    difference = 7 - abs(today.weekday()-target_weekday) 
+  else:
+    difference = abs(today.weekday()-target_weekday)
+        
+  next_date = today + timedelta(days= difference)
+  next_date = next_date.replace(hour=0,minute=0,second=0,microsecond=0)
+  return next_date
+
+
+def create_event(name,start_time,end_time,calendar,weekday,end_recurring="current",rule="Weekly"):
+  start_date = make_aware(find_date(weekday).replace(hour=start_time))
+  end_date = make_aware(find_date(weekday).replace(hour=end_time))
+  if end_recurring == "current":
+    end_recurring_period = make_aware(datetime(2023,12,31,23,59))
+  else:
+    end_recurring_period = make_aware(datetime(2023,12,31,23,59))
+  
+  # this is the weekly rule that we have created in the earlier tutorial
+  weekly_rule = Rule.objects.get(name="Weekly")
+  data = {'title': name,
+        'start': start_date,
+        'end': end_date,
+        'end_recurring_period': end_recurring_period,
+        'rule': weekly_rule,
+        'calendar': calendar
+        }
+  event = Event(**data)
+  event.save()
+  return event
+
+# For guide 1
+event1 = create_event(name="Sunday Morning Schedule",
+                      start_time=10,
+                      end_time=12,
+                      calendar=calendar1,
+                      weekday='sunday')
+# monday morning 14-17
+event2 = create_event(name="Sunday Afternoon Schedule",
+                      start_time=14,
+                      end_time=17,
+                      calendar=calendar1,
+                      weekday='sunday')
+
+event3 = create_event(name="Monday Morning Schedule",
+                      start_time=10,
+                      end_time=12,
+                      calendar=calendar1,
+                      weekday='monday')
+# monday morning 14-17
+event4 = create_event(name="Monday Afternoon Schedule",
+                      start_time=14,
+                      end_time=17,
+                      calendar=calendar1,
+                      weekday='monday')
+
+# thursday morning 10-12
+event5 = create_event(name="Thursday Morning Schedule",
+                      start_time=10,
+                      end_time=12,
+                      calendar=calendar1,
+                      weekday='thursday')
+
+# Now for guide 2
+event6 = create_event(name="Monday Schedule",
+                      start_time=10,
+                      end_time=14,
+                      calendar=calendar2,
+                      weekday='monday')
+
+event7 = create_event(name="Tuesday schedule",
+                      start_time=11,
+                      end_time=14,
+                      calendar=calendar2,
+                      weekday='tuesday')
+
+
+event8 = create_event(name="Thursday Schedule",
+                      start_time=10,
+                      end_time=14,
+                      calendar=calendar2,
+                      weekday='thursday')
+```
+
+We have created some guides and their schedules. Now let's create some tourists and book guides for them.
+
+```python
+from core.models import Guide,Tourist,Booking
+from schedule.models import Calendar,Event,Occurrence,Rule
+from schedule.periods import Period
+from django.utils.timezone import is_aware, make_aware
+from datetime import datetime, timedelta
+from django.utils.timezone import localtime
+
+tourist1 = Tourist.objects.create(name="Tom Cruise", country="USA")
+tourist1.save()
+
+def show_availability(start_time,end_time,verbose=False):
+  all_events = Event.objects.all()
+  period = Period(all_events,start_time,end_time)
+  all_occurrences = period.get_occurrences()
+  
+  if verbose:
+    for occurrence in all_occurrences:
+      print("Title: {} \t\nStart: {} \t\nEnd: {} \t\nGuide: {}\t\n".format(occurrence.title,localtime(occurrence.start),localtime(occurrence.end),occurrence.event.calendar.guide.name))
+
+  return all_occurrences
+
+
+
+def book_guide(start_time,end_time):
+  all_events = Event.objects.all()
+  start = make_aware(datetime(2023,2,13,10,00))
+  end = make_aware(datetime(2023,2,13,11,00))
+  all_occurrences = show_availability(start,end)
+  chosen_occurrence = all_occurrences[0]
+  if start==chosen_occurrence.start and end==chosen_occurrence.end:
+    booking = Booking.objects.create(start_time=start,end_time=end,tourist=tourist1,guide=chosen_occurrence.event.calendar.guide)
+    chosen_occurrence.cancelled = True
+    chosen_occurrence.save()
+  elif start==chosen_occurrence.start and end<chosen_occurrence.end:
+    pass
+  elif start>chosen_occurrence.start and end==chosen_occurrence.end:
+    pass
+  elif start>chosen_occurrence.start and end<chosen_occurrence.end:
+    pass
+  
+
+```
