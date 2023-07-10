@@ -478,7 +478,7 @@ check_awareness(aware_current_time)
 
 ```
 
-## Django-Scheduler Real Life Example
+## Django-Scheduler Real Life Example (Incomplete)
 
 Suppose there are two models.
 - Tour Guide
